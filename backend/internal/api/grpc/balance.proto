@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package balance;
+
+option go_package = "test_nanimai/backend/internal/api/grpc/pb;pb";
+
+service BalanceService {
+  rpc UpdateLimit(UpdateLimitRequest) returns (Empty);
+  rpc UpdateBalance(UpdateBalanceRequest) returns (Empty);
+  rpc OpenReservation(OpenReservationRequest) returns (ReservationResponse);
+  rpc ConfirmReservation(ReservationRequest) returns (Empty);
+  rpc CancelReservation(ReservationRequest) returns (Empty);
+}
+
+message Empty {}
+
+message UpdateLimitRequest {
+  int64 account_id = 1;
+  int64 delta = 2;
+}
+
+message UpdateBalanceRequest {
+  int64 account_id = 1;
+  int64 delta = 2;
+}
+
+message OpenReservationRequest {
+  int64 account_id = 1;
+  int64 owner_service_id = 2;
+  int64 amount = 3;
+  string idempotency_key = 4;
+  int64 timeout_seconds = 5;
+}
+
+message ReservationResponse {
+  int64 reservation_id = 1;
+  int64 account_id = 2;
+  int64 owner_service_id = 3;
+  int64 amount = 4;
+  string status = 5;
+  int64 expires_at = 6;
+}
+
+message ReservationRequest {
+  int64 reservation_id = 1;
+  int64 owner_service_id = 2;
+}

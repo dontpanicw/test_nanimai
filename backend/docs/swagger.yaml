@@ -1,0 +1,229 @@
+basePath: /
+definitions:
+  service.OpenReservationInput:
+    type: object
+  service.ReservationDTO:
+    properties:
+      accountID:
+        format: int64
+        type: integer
+      amount:
+        format: int64
+        type: integer
+      expiresAt:
+        type: string
+      id:
+        format: int64
+        type: integer
+      ownerServiceID:
+        format: int64
+        type: integer
+      status:
+        type: string
+    type: object
+  service.UpdateBalanceInput:
+    properties:
+      accountID:
+        format: int64
+        type: integer
+      delta:
+        format: int64
+        type: integer
+    type: object
+  service.UpdateLimitInput:
+    properties:
+      accountID:
+        format: int64
+        type: integer
+      delta:
+        format: int64
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: API для управления балансом, лимитами и резервами средств
+  title: Balance Service API
+  version: "1.0"
+paths:
+  /accounts/{account_id}/balance:
+    put:
+      consumes:
+      - application/json
+      description: Изменяет текущий баланс счёта на указанную величину
+      parameters:
+      - description: ID счёта
+        in: path
+        name: account_id
+        required: true
+        type: integer
+      - description: Изменение баланса
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateBalanceInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Изменяет баланс счёта
+      tags:
+      - accounts
+  /accounts/{account_id}/limit:
+    put:
+      consumes:
+      - application/json
+      description: Увеличивает/уменьшает максимальный лимит по счёту
+      parameters:
+      - description: ID счёта
+        in: path
+        name: account_id
+        required: true
+        type: integer
+      - description: Изменение лимита
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateLimitInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновляет лимит счёта
+      tags:
+      - accounts
+  /accounts/{account_id}/reservation:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт резерв на сумму на указанном счёте
+      parameters:
+      - description: ID счёта
+        in: path
+        name: account_id
+        required: true
+        type: integer
+      - description: Параметры резерва
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/service.OpenReservationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.ReservationDTO'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Открывает резерв средств
+      tags:
+      - reservations
+  /reservations/{reservation_id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Отменяет ранее открытый резерв
+      parameters:
+      - description: ID резерва
+        in: path
+        name: reservation_id
+        required: true
+        type: integer
+      - description: ID сервиса-владельца
+        in: header
+        name: X-Owner-Service-ID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Отменяет резерв
+      tags:
+      - reservations
+  /reservations/{reservation_id}/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Подтверждает ранее открытый резерв
+      parameters:
+      - description: ID резерва
+        in: path
+        name: reservation_id
+        required: true
+        type: integer
+      - description: ID сервиса-владельца
+        in: header
+        name: X-Owner-Service-ID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Подтверждает резерв
+      tags:
+      - reservations
+swagger: "2.0"

@@ -2,22 +2,22 @@ FROM golang:1.23.4-alpine as build
 
 WORKDIR /build
 
-COPY ../go.mod go.sum ./
+COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY ../.. .
+COPY . .
 
 RUN apk add --no-cache make
 
 RUN go build -o bin/backend ./backend
 
-FROM alpine AS runner
+FROM alpine:3.19 AS runner
 
-WORKDIR backend
+WORKDIR /app
 
 RUN apk add --no-cache curl
 
-COPY --from=build /build/bin/backend /build/backend
+COPY --from=build /build/bin/backend /app/backend
 
-CMD ["/build/backend"]
+CMD ["/app/backend", "--rest-addr", ":8080", "--grpc-addr", ":9090"]

@@ -1,8 +1,19 @@
-package handlers
+package rest
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
-func AuthMiddleware(repo ServiceRepo) func(http.Handler) http.Handler {
+type AuthService struct {
+	ID int64
+}
+
+type AuthServiceRepo interface {
+	GetServiceByToken(ctx context.Context, token string) (AuthService, error)
+}
+
+func AuthMiddleware(repo AuthServiceRepo) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := r.Header.Get("X-Service-Token")

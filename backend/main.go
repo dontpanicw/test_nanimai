@@ -1,23 +1,44 @@
 package main
 
+// @title Balance Service API
+// @version 1.0
+// @description API для управления балансом, лимитами и резервами средств
+// @BasePath /
+
 import (
 	"flag"
-	"github.com/go-chi/chi/v5"
+	"log"
+	"net"
+	"os"
+	_ "test_nanimai/backend/docs"
+	balancegrpc "test_nanimai/backend/internal/api/grpc"
+	pb "test_nanimai/backend/internal/api/grpc/pb"
+	rest "test_nanimai/backend/internal/api/rest"
+	"test_nanimai/backend/internal/repository/postgres"
+	"test_nanimai/backend/internal/service/balance"
+
+	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"log"
-	"os"
-	"test_nanimai/backend/internal/repository/postgres"
-	//tables "test_nanimai/backend/pkg/db"
-	pkgHttp "test_nanimai/backend/pkg/http"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	addr := flag.String("addr", ":8080", "handler service address")
+	restAddr := flag.String("rest-addr", ":8080", "REST service address")
+	grpcAddr := flag.String("grpc-addr", ":9090", "gRPC service address")
 	flag.Parse()
+
+	if env := os.Getenv("REST_ADDR"); env != "" {
+		*restAddr = env
+	}
+	if env := os.Getenv("GRPC_ADDR"); env != "" {
+		*grpcAddr = env
+	}
 
 	if err := godotenv.Load(); err != nil {
 		log.Println(".env file not found, using system environment variables")
@@ -38,23 +59,43 @@ func main() {
 	}
 	log.Println("migrations initialized")
 
-	//USERS
-	UserRepo, err := postgres.NewUserPostgresStorageUser(dsn)
+	// Repositories
+	balanceRepo, err := postgres.NewBalanceStorage(dsn)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-	_ = UserRepo
 
-	//UserService := service.NewUserService(UserRepo)
-	//
-	//UserHandlers := handler.NewUser(UserService)
+	// Services
+	balanceService := balance.NewBalanceService(balanceRepo)
 
-	r := chi.NewRouter()
+	// HTTP server (Gin)
+	r := gin.Default()
+	// REST routes
+	rest.RegisterRoutes(r, balanceService)
+	// Swagger UI (Gin)
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	//UserHandlers.WithUserHandlers(r)
+	// gRPC server
+	lis, err := net.Listen("tcp", *grpcAddr)
+	if err != nil {
+		log.Fatalf("failed to listen on %s: %v", *grpcAddr, err)
+	}
+	grpcServer := grpc.NewServer()
+	pb.RegisterBalanceServiceServer(grpcServer, balancegrpc.NewBalanceGRPCServer(balanceService))
 
-	log.Printf("Listening on %s", *addr)
-	if err := pkgHttp.CreateAndRunServer(r, *addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	errCh := make(chan error, 2)
+
+	go func() {
+		log.Printf("REST listening on %s", *restAddr)
+		errCh <- r.Run(*restAddr)
+	}()
+
+	go func() {
+		log.Printf("gRPC listening on %s", *grpcAddr)
+		errCh <- grpcServer.Serve(lis)
+	}()
+
+	if err := <-errCh; err != nil {
+		log.Fatalf("server stopped with error: %v", err)
 	}
 }

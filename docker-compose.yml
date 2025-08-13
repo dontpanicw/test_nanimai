@@ -4,9 +4,12 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     environment:
-      - DATABASE_URL = postgresql://postgres:postgres@db:5432/postgres?sslmode=disable
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres?sslmode=disable
+      - REST_ADDR=:8080
+      - GRPC_ADDR=:9090
     ports:
       - "8080:8080"
+      - "9090:9090"
     depends_on:
       db:
         condition: service_healthy
