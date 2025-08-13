@@ -70,6 +70,8 @@ func main() {
 
 	// HTTP server (Gin)
 	r := gin.Default()
+	// API-key middleware
+	r.Use(rest.ApiKeyAuthMiddleware(balanceRepo.GetDb()))
 	// REST routes
 	rest.RegisterRoutes(r, balanceService)
 	// Swagger UI (Gin)
